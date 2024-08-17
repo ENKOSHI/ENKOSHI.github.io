@@ -32,10 +32,14 @@ h2 {
 
 label {
     opacity:0.60;
-    text-align: center;
     color:indianred;
     font-weight:500;
 }
+
+option {
+    opacity:0.60;
+    color:indianred;
+    font-weight:500;
 
 textarea {
     color:indianred;
