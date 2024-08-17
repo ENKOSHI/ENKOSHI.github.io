@@ -4,9 +4,12 @@ body {
     margin: 0;
     padding: 20px;
     background-image: url(https://ENKOSHI.github.io/Background.jpg);
+    background-size:cover;
+    background-attachment: fixed;
 }
 
 .container {
+    opacity:0.60;
     max-width: 800px;
     margin: auto;
     background: #fff;
@@ -21,7 +24,6 @@ h1 {
 }
 
 textarea {
-    opacity:0.60;
     width: 100%;
     margin-bottom: 10px;
     padding: 10px;
@@ -42,6 +44,7 @@ input[type="range"] {
     border-radius: 5px;
     box-sizing: border-box;
     font-weight:600;
+    color:indianred;
 }
 
 button {
