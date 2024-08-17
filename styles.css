@@ -24,6 +24,20 @@ h1 {
     font-weight:500;
 }
 
+h2{
+    opacity:0.60;
+    text-align: center;
+    color:indianred;
+    font-weight:500;
+}
+
+label {
+    opacity:0.60;
+    text-align: center;
+    color:indianred;
+    font-weight:500;
+}
+
 textarea {
     color:indianred;
     opacity:0.60;
@@ -65,3 +79,5 @@ button {
 button:hover {
     background-color: #0056b3;
 }
+
+
