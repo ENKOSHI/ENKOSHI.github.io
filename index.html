@@ -1,39 +1,42 @@
 <!DOCTYPE html>
+<html lang="zh-CN">
 <head>
-    <meta charset="utf-8">
-    <title>This is a title</title>
-    <style type="text/css">
-        body {
-            width: auto;
-            height: auto;
-            background-image: url(https://MiFengResearch.github.io/asset/Graphic/Background.jpg);
-            background-size:cover;
-            background-attachment: fixed;
-            margin: 0px;
-            padding: 10px;
-        }
-        .box {
-            background-color:whitesmoke;
-            width:75%;
-            height:auto;
-            text-align:center;
-            margin:auto;
-            opacity:0.60;
-            border-radius:10px;
-        }
-        p{
-            color:indianred;
-            font-weight:500;
-        }
-        a{
-            color:indianred;
-            font-weight:900;
-        }
-    </style>
-</head> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本替换工具</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
 <body>
-    <div class="box">
-        <p><a href="https://space.bilibili.com/3546610164304429">点击领取10万原石</a></p>
-            <a href="https://MiFengResearch.github.io/asset/Document/Origin.txt">click here to view origin</a>
+    <div class="container">
+        <h1>文本替换工具</h1>
+        
+        <label for="sampleText">选择示例文本:</label>
+        <select id="sampleText" onchange="setSampleText()">
+            <option value="你说的对，但是《原神》是由米哈游自主研发的一款全新开放世界冒险游戏。游戏发生在一个被称作「提瓦特」的幻想世界，在这里，被神选中的人将被授予「神之眼」，导引元素之力。你将扮演一位名为「旅行者」的神秘角色，在自由的旅行中邂逅性格各异、能力独特的同伴们，和他们一起击败强敌">原神1</option>
+            <option value="我只想说一件事，倘若有一天原神真的消失，你们会高兴开心吗？对我来说，原神不仅仅是一款游戏，我玩的时间不是很长，毕竟不是开服玩家，只玩了一年的时间。这游戏就像是，在我不太完美的人生中，照来了一束光，我并不想让这束光消失，因为它如今已经渐渐的成为我坚持活下去的理由之一。我现在之所以活着，一是因为我也害怕消失，二就是我的父母家人 ，三是我相信这个世界并没有那么糟糕。所以我努力的成为，我父亲母亲想成为的人 ，我想让他们幸福快乐的度过余生，但有时候面具带久了，就好像变的是真的一样，这样子很累，很累，真的很累，我和我的父母解释讲道理，我知道这是没用的，但我真的希望父母能认真的听一下我的话。而原神这个游戏，至少在让我进入这个游戏的时候，我可以稍微的放轻松一下，稍微的休息一下。有时候我也会难过，毕竟我是人，我是有感情的，我不是机器。也许我也是疯了，我竟然和你们说了这么多，管他呢，如果你们想骂，就在下面骂吧，所以说反原神吧的各位，你们是发自内心的想让原神消失吗？只要他一天不消失，你们就内心不痛快，就内心不舒服，想要发泄吗？但是如果真的消失了，你们到底会不会开心？能说下吗？">原神2</option>
+            <option value="后方是这样的。前线的将士只要全身心投入到战场中，听命行事，奋力杀敌就可以，可是后方人员要考虑的事情就很多了。">鸣潮</option>
+            <option value="绫华最可爱了…最喜欢绫华了…嘿嘿嘿我的绫华酱……我已经离不开绫华了……世界上怎么会有绫华这么完美的人…我最喜欢绫华酱了！…我像个笨蛋一样喜欢她…一直、一直都在忍受着对绫华的爱…我的心里一直都是绫华！我爱绫华我真的真的真的很喜欢绫华…呜呜呜…绫华酱、绫华的样子已经被我深深的刻在心里了！…爱她、是的... 我喜欢绫华！永远都喜欢绫华！........呜呜呜、不行了，我已经变成不看绫华就不行的笨蛋了...啊啊我会一直永远的喜欢绫华…我是神里绫华的狗">神里绫华</option>
+        </select><br>
+
+        <label for="inputText">输入文本:</label><br>
+        <textarea id="inputText" rows="5" cols="50"></textarea><br>
+
+        <label for="replaceChar">替换字符 (默认 "K"):</label><br>
+        <input type="text" id="replaceChar" maxlength="1" value="K"><br>
+
+        <label for="replaceRatio">替换比例 (0到1之间):</label><br>
+        <input type="number" id="replaceRatio" step="0.01" min="0" max="1" value="0.2" oninput="updateSlider()">
+        <input type="range" id="replaceSlider" step="0.01" min="0" max="1" value="0.2" oninput="updateInput()"><br>
+        
+        <button onclick="generateRandomRatio()">随机生成比例</button><br>
+
+        <button onclick="replaceText()">替换文本</button>
+        <button onclick="copyResult()">复制结果</button>
+
+        <h2>结果:</h2>
+        <textarea id="outputText" rows="5" cols="50"></textarea>
     </div>
+
+    <script src="script.js"></script>
 </body>
+</html>
