@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>音频转五线谱</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-image: url('background.jpg');
+            background-size: cover;
+            background-position: center;
+            font-family: Arial, sans-serif;
+            color: #666;
+            font-weight: bold;
+        }
+        .file-input-container {
+            margin: 20px 0;
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .custom-file-input {
+            padding: 8px 16px;
+            background-color: rgba(255, 255, 255, 0.8);
+            color: #666;
+            border: 2px solid #666;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .custom-file-input:hover {
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+        .score-container {
+            width: 840px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        canvas {
+            border: 1px solid #666;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            margin: 10px;
+        }
+        #output {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="file-input-container">
+        <input type="file" id="audioFile" accept="audio/*" class="custom-file-input">
+    </div>
+    <div class="score-container">
+        <canvas id="canvas" width="800" height="400"></canvas>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 绘制五线谱基本线条
+        function drawStaff() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            for(let i = 0; i < 5; i++) {
+                const y = 100 + i * 20;
+                ctx.moveTo(50, y);
+                ctx.lineTo(750, y);
+            }
+            ctx.strokeStyle = '#666';
+            ctx.stroke();
+            
+            // 绘制高音谱号
+            ctx.font = '60px serif';
+            ctx.fillStyle = '#666';
+            ctx.fillText('𝄞', 10, 145);
+        }
+
+        // 音频处理
+        document.getElementById('audioFile').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            const buffer = await file.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(buffer);
+            
+            // 获取音频数据
+            const channelData = audioBuffer.getChannelData(0);
+            const sampleRate = audioBuffer.sampleRate;
+            
+            // 使用自相关算法检测音高
+            const frameSize = 2048;
+            const notes = [];
+            
+            for(let i = 0; i < channelData.length; i += frameSize) {
+                const frame = channelData.slice(i, i + frameSize);
+                if(frame.length < frameSize) break;
+                
+                // 计算自相关
+                let correlation = new Float32Array(frameSize);
+                for(let lag = 0; lag < frameSize; lag++) {
+                    let sum = 0;
+                    for(let j = 0; j < frameSize - lag; j++) {
+                        sum += frame[j] * frame[j + lag];
+                    }
+                    correlation[lag] = sum;
+                }
+                
+                // 寻找峰值
+                let maxCorrelation = 0;
+                let foundPeriod = 0;
+                for(let j = 50; j < correlation.length; j++) {
+                    if(correlation[j] > maxCorrelation) {
+                        maxCorrelation = correlation[j];
+                        foundPeriod = j;
+                    }
+                }
+                
+                // 计算频率
+                const frequency = sampleRate / foundPeriod;
+                if(frequency > 50 && frequency < 2000) { // 过滤不合理的频率
+                    const note = {
+                        freq: frequency,
+                        time: i / sampleRate,
+                        duration: frameSize / sampleRate
+                    };
+                    notes.push(note);
+                }
+            }
+            
+            // 绘制五线谱
+            drawStaff();
+            
+            // 绘制音符
+            let x = 100;
+            ctx.fillStyle = '#666';
+            ctx.strokeStyle = '#666';
+            notes.forEach(note => {
+                // 将频率转换为音高
+                const midiNote = 69 + 12 * Math.log2(note.freq / 440);
+                const y = 180 - ((midiNote - 60) * 5); // 将MIDI音高映射到五线谱位置
+                
+                // 绘制音符头
+                ctx.beginPath();
+                ctx.ellipse(x, y, 6, 4, 0, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // 绘制音符杆
+                if(y > 140) {
+                    ctx.beginPath();
+                    ctx.moveTo(x + 6, y);
+                    ctx.lineTo(x + 6, y - 30);
+                    ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(x - 6, y);
+                    ctx.lineTo(x - 6, y + 30);
+                    ctx.stroke();
+                }
+                
+                x += 30;
+                if(x > 700) x = 100; // 换行
+            });
+        });
+    </script>
+</body>
+</html>
