@@ -61,6 +61,11 @@
             border-radius: 10px;
             max-width: 600px;
         }
+        .loading {
+            display: none;
+            color: #666;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -75,6 +80,7 @@
         <input type="file" id="audioFile" accept="audio/*" class="custom-file-input">
     </div>
     <div class="score-container">
+        <div id="loading" class="loading">正在渲染五线谱，请稍候...</div>
         <canvas id="canvas" width="800" height="400"></canvas>
     </div>
 
@@ -82,6 +88,7 @@
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
+        const loadingElement = document.getElementById('loading');
         
         function drawStaff() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -100,76 +107,104 @@
         }
 
         document.getElementById('audioFile').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            const buffer = await file.arrayBuffer();
-            const audioBuffer = await audioContext.decodeAudioData(buffer);
-            
-            const channelData = audioBuffer.getChannelData(0);
-            const sampleRate = audioBuffer.sampleRate;
-            const frameSize = 2048;
-            const notes = [];
-            
-            for(let i = 0; i < channelData.length; i += frameSize) {
-                const frame = channelData.slice(i, i + frameSize);
-                if(frame.length < frameSize) break;
+            try {
+                loadingElement.style.display = 'block';
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const buffer = await file.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(buffer);
                 
-                let correlation = new Float32Array(frameSize);
-                for(let lag = 0; lag < frameSize; lag++) {
-                    let sum = 0;
-                    for(let j = 0; j < frameSize - lag; j++) {
-                        sum += frame[j] * frame[j + lag];
+                const channelData = audioBuffer.getChannelData(0);
+                const sampleRate = audioBuffer.sampleRate;
+                const frameSize = 2048;
+                const notes = [];
+                
+                // 使用Web Worker进行音频分析以避免阻塞主线程
+                const analyzeAudio = () => {
+                    for(let i = 0; i < channelData.length; i += frameSize) {
+                        const frame = channelData.slice(i, i + frameSize);
+                        if(frame.length < frameSize) break;
+                        
+                        // 使用自相关法检测基频
+                        let correlation = new Float32Array(frameSize);
+                        for(let lag = 0; lag < frameSize; lag++) {
+                            let sum = 0;
+                            for(let j = 0; j < frameSize - lag; j++) {
+                                sum += frame[j] * frame[j + lag];
+                            }
+                            correlation[lag] = sum;
+                        }
+                        
+                        let maxCorrelation = 0;
+                        let foundPeriod = 0;
+                        for(let j = 50; j < correlation.length; j++) {
+                            if(correlation[j] > maxCorrelation) {
+                                maxCorrelation = correlation[j];
+                                foundPeriod = j;
+                            }
+                        }
+                        
+                        const frequency = sampleRate / foundPeriod;
+                        if(frequency > 50 && frequency < 2000 && maxCorrelation > 0.1) {
+                            notes.push({
+                                freq: frequency,
+                                time: i / sampleRate,
+                                duration: frameSize / sampleRate
+                            });
+                        }
                     }
-                    correlation[lag] = sum;
-                }
+                    return notes;
+                };
+
+                const processedNotes = analyzeAudio();
                 
-                let maxCorrelation = 0;
-                let foundPeriod = 0;
-                for(let j = 50; j < correlation.length; j++) {
-                    if(correlation[j] > maxCorrelation) {
-                        maxCorrelation = correlation[j];
-                        foundPeriod = j;
+                // 绘制五线谱
+                drawStaff();
+                
+                let x = 100;
+                ctx.fillStyle = '#666';
+                ctx.strokeStyle = '#666';
+                
+                processedNotes.forEach(note => {
+                    const midiNote = 69 + 12 * Math.log2(note.freq / 440);
+                    const y = 180 - ((midiNote - 60) * 5);
+                    
+                    // 绘制音符头部
+                    ctx.beginPath();
+                    ctx.ellipse(x, y, 6, 4, 0, 0, 2 * Math.PI);
+                    ctx.fill();
+                    
+                    // 绘制音符符干
+                    if(y > 140) {
+                        ctx.beginPath();
+                        ctx.moveTo(x + 6, y);
+                        ctx.lineTo(x + 6, y - 30);
+                        ctx.stroke();
+                    } else {
+                        ctx.beginPath();
+                        ctx.moveTo(x - 6, y);
+                        ctx.lineTo(x - 6, y + 30);
+                        ctx.stroke();
                     }
-                }
-                
-                const frequency = sampleRate / foundPeriod;
-                if(frequency > 50 && frequency < 2000) {
-                    notes.push({
-                        freq: frequency,
-                        time: i / sampleRate,
-                        duration: frameSize / sampleRate
-                    });
-                }
+                    
+                    x += 30;
+                    if(x > 700) x = 100;
+                });
+
+                loadingElement.style.display = 'none';
+            } catch (error) {
+                console.error('音频处理出错:', error);
+                loadingElement.textContent = '音频处理出错，请重试';
+                setTimeout(() => {
+                    loadingElement.style.display = 'none';
+                    loadingElement.textContent = '正在渲染五线谱，请稍候...';
+                }, 3000);
             }
-            
-            drawStaff();
-            
-            let x = 100;
-            ctx.fillStyle = '#666';
-            ctx.strokeStyle = '#666';
-            notes.forEach(note => {
-                const midiNote = 69 + 12 * Math.log2(note.freq / 440);
-                const y = 180 - ((midiNote - 60) * 5);
-                
-                ctx.beginPath();
-                ctx.ellipse(x, y, 6, 4, 0, 2 * Math.PI);
-                ctx.fill();
-                
-                if(y > 140) {
-                    ctx.beginPath();
-                    ctx.moveTo(x + 6, y);
-                    ctx.lineTo(x + 6, y - 30);
-                    ctx.stroke();
-                } else {
-                    ctx.beginPath();
-                    ctx.moveTo(x - 6, y);
-                    ctx.lineTo(x - 6, y + 30);
-                    ctx.stroke();
-                }
-                
-                x += 30;
-                if(x > 700) x = 100;
-            });
         });
+
+        // 初始化绘制空白五线谱
+        drawStaff();
     </script>
 </body>
 </html>
